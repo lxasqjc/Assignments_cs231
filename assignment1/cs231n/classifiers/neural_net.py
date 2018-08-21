@@ -95,8 +95,9 @@ class TwoLayerNet(object):
     # classifier loss.                                                          #
     #############################################################################
     exp_z2 = np.exp(scores)
-    possib = exp_z2 / np.matrix(np.sum(exp_z2, 1)).T
-    cor_log_poss = - np.log(possib[range(N), y])
+    norm = exp_z2 / np.matrix(np.sum(exp_z2, 1)).T
+    norm_y = norm[range(N), y]
+    cor_log_poss = - np.log(norm_y)
     data_loss = np.mean(cor_log_poss)
     reg_loss = reg * np.sum(W1 ** 2) + reg * np.sum(W2 ** 2)
     loss = data_loss + reg_loss
@@ -111,7 +112,17 @@ class TwoLayerNet(object):
     # and biases. Store the results in the grads dictionary. For example,       #
     # grads['W1'] should store the gradient on W1, and be a matrix of same size #
     #############################################################################
-    pass
+    dscore = norm
+    dscore[range(N), y] -= 1
+    dscore /= N
+    
+    grads['W2'] = np.dot(h1.T, dscore) + 2 * reg * W2
+    grads['b2'] = np.sum(dscore, 0)
+    
+    dhidden = dscore.dot(W2.T)
+    dhidden[h1 == 0] = 0 # dZ2 respect to h1
+    grads['W1'] = np.dot(X.T, dhidden) + 2 * reg * W1
+    grads['b1'] = np.sum(dhidden, 0)
     #############################################################################
     #                              END OF YOUR CODE                             #
     #############################################################################
