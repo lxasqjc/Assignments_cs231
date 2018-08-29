@@ -65,7 +65,8 @@ def sgd_momentum(w, dw, config=None):
     # TODO: Implement the momentum update formula. Store the updated value in #
     # the next_w variable. You should also use and update the velocity v.     #
     ###########################################################################
-    pass
+    v = config['momentum'] * v - config['learning_rate'] * dw
+    next_w = w + v
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -99,7 +100,8 @@ def rmsprop(w, dw, config=None):
     # in the next_w variable. Don't forget to update cache value stored in    #
     # config['cache'].                                                        #
     ###########################################################################
-    pass
+    config['cache'] = config['decay_rate'] * config['cache'] + (1-config['decay_rate'])*dw*dw
+    next_w = w - config['learning_rate'] * dw / (np.sqrt(config['cache']) + config['epsilon'])
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -122,13 +124,13 @@ def adam(w, dw, config=None):
     - t: Iteration number.
     """
     if config is None: config = {}
-    config.setdefault('learning_rate', 1e-3)
-    config.setdefault('beta1', 0.9)
-    config.setdefault('beta2', 0.999)
-    config.setdefault('epsilon', 1e-8)
-    config.setdefault('m', np.zeros_like(w))
-    config.setdefault('v', np.zeros_like(w))
-    config.setdefault('t', 0)
+    lr = config.setdefault('learning_rate', 1e-3)
+    beta1 = config.setdefault('beta1', 0.9)
+    beta2 = config.setdefault('beta2', 0.999)
+    epsilon = config.setdefault('epsilon', 1e-8)
+    m = config.setdefault('m', np.zeros_like(w))
+    v = config.setdefault('v', np.zeros_like(w))
+    t = config.setdefault('t', 0)
 
     next_w = None
     ###########################################################################
@@ -139,7 +141,16 @@ def adam(w, dw, config=None):
     # NOTE: In order to match the reference output, please modify t _before_  #
     # using it in any calculations.                                           #
     ###########################################################################
-    pass
+    t += 1
+    m = beta1 * m + (1 - beta1) * dw
+    v = beta2 * v + (1 - beta2) * dw * dw
+    m_bia = m / (1 - beta1 ** t)
+    v_bia = v / (1 - beta2 ** t)
+    next_w = w - lr * m_bia / (np.sqrt(v_bia) + epsilon)
+    
+    config['t'] = t
+    config['m'] = m
+    config['v'] = v
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
