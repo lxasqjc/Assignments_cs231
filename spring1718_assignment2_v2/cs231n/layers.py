@@ -209,6 +209,10 @@ def batchnorm_forward(x, gamma, beta, bn_param):
     # Store the updated running means back into bn_param
     bn_param['running_mean'] = running_mean
     bn_param['running_var'] = running_var
+    #JC note: because bn_param is unambious, i.e. the dictionart not defined 
+    # in function but directly referred, so it must already exist and defaultly
+    # treat as global variable, therefore it do not need return
+    # see https://stackoverflow.com/questions/14323817/global-dictionaries-dont-need-keyword-global-to-modify-them
 
     return out, cache
 
@@ -237,7 +241,26 @@ def batchnorm_backward(dout, cache):
     # Referencing the original paper (https://arxiv.org/abs/1502.03167)       #
     # might prove to be helpful.                                              #
     ###########################################################################
-    pass
+    x_nor, mu, var, eps, gamma, beta, x = cache
+    N, D = dout.shape
+    
+    dbeta = np.sum(dout, 0)
+    dgamma = np.sum(dout * x_nor, 0)
+    
+    # dx
+    dx_nor = dout * gamma
+    ddom = np.sum(dx_nor * (x - mu), 0)
+    dvar = -1 / 2 * ((var + eps) ** (-3 / 2)) * ddom
+    dsq = 1 / N * np.ones((N, D)) * dvar
+    dxmu1 = 2 * (x - mu) * dsq
+    dxmu2 = 1 / np.sqrt(var + eps) * dx_nor
+    dxmu = dxmu1 + dxmu2
+    dmu = -1 * np.sum(dxmu, 0)
+    dx1 = np.ones((N, D)) / N * dmu
+    dx2 = dxmu
+    dx = dx1 + dx2
+    
+    
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
