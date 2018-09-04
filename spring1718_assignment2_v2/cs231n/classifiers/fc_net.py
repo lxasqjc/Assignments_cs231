@@ -205,6 +205,9 @@ class FullyConnectedNet(object):
         self.bn_params = []
         if self.normalization=='batchnorm':
             self.bn_params = [{'mode': 'train'} for i in range(self.num_layers - 1)]
+            for i in range(self.num_layers - 1):
+                self.params['gamma%d' % (i+1)] = np.ones(dims[i+1])
+                self.params['beta%d' % (i+1)] = np.zeros(dims[i+1])
         if self.normalization=='layernorm':
             self.bn_params = [{} for i in range(self.num_layers - 1)]
 
@@ -212,7 +215,7 @@ class FullyConnectedNet(object):
         for k, v in self.params.items():
             self.params[k] = v.astype(dtype)
 
-
+    
     def loss(self, X, y=None):
         """
         Compute loss and gradient for the fully-connected net.
@@ -248,15 +251,28 @@ class FullyConnectedNet(object):
         L2_reg = 0
         # FC + relu for all layer except last layer
         for i in range(hidden_num):
-            scores, catch = affine_relu_forward(scores, self.params['W' + str(i+1)],
-                                                      self.params['b' + str(i+1)])
+            if self.normalization=='batchnorm':
+                scores, catch = self.affine_bn_relu_forward(scores, 
+                                                           self.params['W' + str(i+1)],
+                                                           self.params['b' + str(i+1)], 
+                                                           self.bn_params[i], 
+                                                           self.params['gamma' + str(i+1)], 
+                                                           self.params['beta' + str(i+1)])
+            else:
+                scores, catch = affine_relu_forward(scores, self.params['W' + str(i+1)],
+                                                    self.params['b' + str(i+1)])
             catch_his.append(catch)
+            
+            # TODO: if dropout  #
+            
+            # TODO: if dropout  #
+            
             L2_reg += 0.5 * self.reg * np.sum(self.params['W' + str(i+1)] ** 2)
         
-        # last layer without relu
+        # last layer without bn and relu
         i += 1
         scores, catch = affine_forward(scores, self.params['W' + str(i+1)],
-                                             self.params['b' + str(i+1)])
+                                       self.params['b' + str(i+1)])
         catch_his.append(catch)
         L2_reg += 0.5 * self.reg * np.sum(self.params['W' + str(i+1)] ** 2)
         
@@ -291,8 +307,20 @@ class FullyConnectedNet(object):
         grads['W'+str(i)] += self.reg * self.params['W'+str(i)]
 
         for i in range(self.num_layers - 1, 0, -1):
-            dout, grads['W'+str(i)], grads['b'+str(i)] = affine_relu_backward(dout, catch_his.pop())
-            grads['W'+str(i)] += self.reg * self.params['W'+str(i)]
+            # TODO: if dropout #
+            
+            # TODO: if dropout #
+            if self.normalization=='batchnorm':
+                dout, \
+                grads['W' + str(i)], \
+                grads['b' + str(i)], \
+                grads['gamma' + str(i)], \
+                grads['beta' + str(i)]  = \
+                self.affine_bn_relu_backward(dout, catch_his.pop())
+            else:
+                dout, grads['W' + str(i)],
+                grads['b' + str(i)] = affine_relu_backward(dout, catch_his.pop())
+            grads['W' + str(i)] += self.reg * self.params['W' + str(i)]
         
         
         ############################################################################
@@ -300,3 +328,40 @@ class FullyConnectedNet(object):
         ############################################################################
 
         return loss, grads
+    
+        ############################################################################
+        #          Batch-Normalization Layer Utilities                             #
+        ############################################################################    
+    
+    def affine_bn_relu_forward(self, x, w, b, bn_param, gamma, beta):
+        """
+        Convenience layer that perorms an affine transform, plus batch 
+        normalisation followed by a ReLU
+    
+        Inputs:
+        - x: Input to the affine layer
+        - w, b: Weights for the affine layer
+        - gamma: Scale parameter of shape (D,)
+        - beta: Shift paremeter of shape (D,)
+        - bn_param: Dictionary with a set keys (mode, eps, momentum, 
+                                                running_mean, running_var):
+    
+        Returns a tuple of:
+        - out: Output from the ReLU
+        - cache: Object to give to the backward pass
+        """
+        out1, fc_cache = affine_forward(x, w, b)
+        out2, bn_cache = batchnorm_forward(out1, gamma, beta, bn_param)
+        out3, relu_cache = relu_forward(out2)
+        cache = (fc_cache, bn_cache, relu_cache)
+        return out3, cache
+    
+    def affine_bn_relu_backward(self, dout3, cache):
+        """
+        Backward pass for the affine-relu convenience layer
+        """
+        fc_cache, bn_cache, relu_cache = cache
+        dout2 = relu_backward(dout3, relu_cache)
+        dout1, dgamma, dbeta = batchnorm_backward_alt(dout2, bn_cache)
+        dx, dw, db = affine_backward(dout1, fc_cache)
+        return dx, dw, db, dgamma, dbeta    
