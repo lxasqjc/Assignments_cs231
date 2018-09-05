@@ -309,8 +309,7 @@ def batchnorm_backward_alt(dout, cache):
     #dvar_x = 2 * (x - mu) / N
     
     dx_nor = gamma * dout
-    #dx_nor_x = dx_nor_x1 * dx_nor + dx_nor_mu * dmu_x * np.sum(dx_nor, 0) + 1 / (N * sd) * x_nor * np.sum(x_nor * dx_nor, 0)
-    #print(np.shape(N * dx_nor - np.sum(dx_nor, 0)))
+    # https://kevinzakka.github.io/2016/09/14/batch_normalization/
     dx = (1.0 / (N * sd)) * (N * dx_nor - np.sum(dx_nor, 0) - x_nor * np.sum((dx_nor * x_nor), 0)) 
     
     ###########################################################################
@@ -354,7 +353,15 @@ def layernorm_forward(x, gamma, beta, ln_param):
     # transformations you could perform, that would enable you to copy over   #
     # the batch norm code and leave it almost unchanged?                      #
     ###########################################################################
-    pass
+    N, D = x.shape
+    mu = np.mean(x, 1, keepdims=True)
+    var = np.sum((x - mu) ** 2, 1, keepdims=True) / float(D)
+    x_nor = (x - mu) / np.sqrt(var + eps)
+    #scale and shift
+    out = gamma * x_nor + beta
+    
+    #catch for backword pass
+    cache = (x_nor, mu, var, eps, gamma, beta, x)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -385,7 +392,16 @@ def layernorm_backward(dout, cache):
     # implementation of batch normalization. The hints to the forward pass    #
     # still apply!                                                            #
     ###########################################################################
-    pass
+    x_nor, mu, var, eps, gamma, beta, x = cache
+    N, D = dout.shape
+    sd = np.sqrt(var + eps)
+    
+    dbeta = np.sum(dout, 0)
+    dgamma = np.sum(dout * x_nor, 0)
+    
+    dx_nor = gamma * dout
+    dx = (1.0 / (D * sd)) * (D * dx_nor - np.sum(dx_nor, 1, 
+         keepdims=True) - x_nor * np.sum((dx_nor * x_nor), 1, keepdims=True)) 
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
