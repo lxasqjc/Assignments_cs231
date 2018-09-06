@@ -274,7 +274,9 @@ class FullyConnectedNet(object):
             catch_his.append(catch)
             
             # TODO: if dropout  #
-            
+            if self.use_dropout:
+                scores, catch = dropout_forward(scores, self.dropout_param)
+                catch_his.append(catch)
             # TODO: if dropout  #
             
             L2_reg += 0.5 * self.reg * np.sum(self.params['W' + str(i+1)] ** 2)
@@ -318,7 +320,8 @@ class FullyConnectedNet(object):
 
         for i in range(self.num_layers - 1, 0, -1):
             # TODO: if dropout #
-            
+            if self.use_dropout:
+                dout = dropout_backward(dout, catch_his.pop())
             # TODO: if dropout #
             if self.normalization=='batchnorm':
                 dout, \
