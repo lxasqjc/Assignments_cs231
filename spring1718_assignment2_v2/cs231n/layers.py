@@ -627,7 +627,24 @@ def max_pool_forward_naive(x, pool_param):
     ###########################################################################
     # TODO: Implement the max-pooling forward pass                            #
     ###########################################################################
-    pass
+    # extract parameters
+    N, C, H, W = x.shape
+    PH = pool_param['pool_height']
+    PW = pool_param['pool_width']
+    stride = pool_param['stride']
+    # Check for parameter sanity
+    assert (H - PH) % stride == 0, 'Sanity Check Status: Conv Layer Failed in Height'
+    assert (W - PW) % stride == 0, 'Sanity Check Status: Conv Layer Failed in Width'
+    H_prime = 1 + (H - PH) // stride
+    W_prime = 1 + (W - PW) // stride
+    # pooling
+    out = np.zeros((N, C, H_prime, W_prime))
+    # Naive Loops
+    for n in range(N):
+        for c in range(C):
+            for j in range(0, H_prime):
+                for i in range(0, W_prime):
+                    out[n, c, j, i] = x[n, c, j*stride:j*stride+PH, i*stride:i*stride+PW].max()
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -650,7 +667,27 @@ def max_pool_backward_naive(dout, cache):
     ###########################################################################
     # TODO: Implement the max-pooling backward pass                           #
     ###########################################################################
-    pass
+    x, pool_param = cache
+    # extract parameters
+    N, C, H, W = x.shape
+    PH = pool_param['pool_height']
+    PW = pool_param['pool_width']
+    stride = pool_param['stride']
+    # Check for parameter sanity
+    assert (H - PH) % stride == 0, 'Sanity Check Status: Conv Layer Failed in Height'
+    assert (W - PW) % stride == 0, 'Sanity Check Status: Conv Layer Failed in Width'
+    H_prime = 1 + (H - PH) // stride
+    W_prime = 1 + (W - PW) // stride
+    # construct output
+    dx = np.zeros_like(x)
+    # Naive Loops
+    for n in range(N):
+        for c in range(C):
+            for j in range(0, H_prime):
+                for i in range(0, W_prime):
+                    max_ind = np.argmax(x[n, c, j*stride:j*stride+PH, i*stride:i*stride+PW])
+                    ind1, ind2 = np.unravel_index(max_ind, (PH, PW))
+                    dx[n, c, j*stride:j*stride+PH, i*stride:i*stride+PW][ind1, ind2] = dout[n, c, j, i]
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
