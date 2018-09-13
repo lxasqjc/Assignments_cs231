@@ -827,7 +827,33 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     # the bulk of the code is similar to both train-time batch normalization  #
     # and layer normalization!                                                # 
     ###########################################################################
-    pass
+    mode = gn_param['mode']
+    momentum = gn_param.get('momentum', 0.9)
+
+    N, C, H, W = x.shape
+    x = x.reshape(N, G, C // G, H, W)
+    
+    running_mean = gn_param.get('running_mean', np.zeros((N, G, C // G, H, W), dtype=x.dtype))
+    running_var = gn_param.get('running_var', np.zeros((N, G, C // G, H, W), dtype=x.dtype))
+    
+    if mode == 'train':
+        mu = np.mean(x, axis=(2, 3, 4), keepdims=True)
+        var = (np.sum((x - mu) ** 2, axis = (2, 3, 4), keepdims=True) / float((C // G) * H * W))
+        x_nor = (x - mu) / np.sqrt(var + eps)
+        x_nor = x_nor.reshape(N, C, H, W)
+        #scale and shift
+        out = gamma.reshape(1, C, 1, 1) * x_nor + beta.reshape(1, C, 1, 1)
+        #calculate running_mean/ var
+        running_mean = momentum * running_mean + (1 - momentum) * mu
+        running_var = momentum * running_var + (1 - momentum) * var
+        #catch for backword pass
+        cache = (x_nor, mu, var, eps, gamma, beta, x, G)
+    elif mode == 'test':
+        x_nor = (x - running_mean) / np.sqrt(running_var + eps)
+        x_nor = x_nor.reshape(N, C, H, W)
+        out = gamma.reshape(1, C, 1, 1) * x_nor + beta.reshape(1, C, 1, 1)
+    else:
+        raise ValueError('Invalid forward batchnorm mode "%s"' % mode)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -852,8 +878,22 @@ def spatial_groupnorm_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the backward pass for spatial group normalization.      #
     # This will be extremely similar to the layer norm implementation.        #
-    ###########################################################################
-    pass
+    ########################################################################### 
+    x_nor, mu, var, eps, gamma, beta, x, G= cache
+    N, C, H, W = dout.shape
+    sd = np.sqrt(var + eps)
+    D = (C // G) * H * W
+    
+    # solution require keep dimension ....
+    dbeta = np.sum(dout, axis = (0, 2, 3), keepdims=True)
+    dgamma = np.sum(dout * x_nor, axis = (0, 2, 3), keepdims=True)
+    
+    dx_nor = gamma.reshape(1, C, 1, 1) * dout
+    dx_nor = dx_nor.reshape(N, G, C // G, H, W)
+    x_nor = x_nor.reshape(N, G, C // G, H, W)
+    # https://kevinzakka.github.io/2016/09/14/batch_normalization/
+    dx = (1.0 / (D * sd)) * (D * dx_nor - np.sum(dx_nor, axis = (2, 3, 4), keepdims=True) - x_nor * np.sum((dx_nor * x_nor), axis = (2, 3, 4), keepdims=True))
+    dx = dx.reshape(N, C, H, W)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
