@@ -5,6 +5,7 @@ cifar-10-python.tar.gz
 *.gz
 cifar-10-batches-py/*
 cifar-10-batches-py/
+coco_captioning/
 
 
 # Byte-compiled / optimized / DLL files
