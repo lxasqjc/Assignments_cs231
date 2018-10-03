@@ -103,7 +103,13 @@ def rnn_forward(x, h0, Wx, Wh, b):
     # input data. You should use the rnn_step_forward function that you defined  #
     # above. You can use a for loop to help compute the forward pass.            #
     ##############################################################################
-    pass
+    T = x.shape[1]
+    N, H = h0.shape
+    h = np.zeros([N, T, H])
+    cache = {}
+    h[:, 0, :], cache[0] = rnn_step_forward(x[:, 0, :], h0, Wx, Wh, b)
+    for i in range(1, T):
+        h[:, i, :], cache[i] = rnn_step_forward(x[:, i, :], h[:, i-1, :], Wx, Wh, b)
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -135,7 +141,22 @@ def rnn_backward(dh, cache):
     # sequence of data. You should use the rnn_step_backward function that you   #
     # defined above. You can use a for loop to help compute the backward pass.   #
     ##############################################################################
-    pass
+    Wh, prev_h, Wx, x, b, next_h = cache[0]
+    T = dh.shape[1]
+    dx = np.zeros([x.shape[0], T, x.shape[1]])
+    
+    dprev_h = np.zeros([dh.shape[0], dh.shape[2]])
+    dWx = np.zeros_like(Wx)
+    dWh = np.zeros_like(Wh)
+    db = np.zeros_like(b)
+    
+    for i in range(T-1, -1, -1):
+        dprev_h += dh[:, i, :]
+        dx[:, i, :], dprev_h, dWx_step, dWh_step, db_step = rnn_step_backward(dprev_h, cache[i])
+        dWx += dWx_step
+        dWh += dWh_step
+        db += db_step
+    dh0 = dprev_h
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
