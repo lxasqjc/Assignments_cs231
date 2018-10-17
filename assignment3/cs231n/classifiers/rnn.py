@@ -238,7 +238,30 @@ class CaptioningRNN(object):
         # NOTE: we are still working over minibatches in this function. Also if   #
         # you are using an LSTM, initialize the first cell state to zeros.        #
         ###########################################################################
-        pass
+        hidden_init, _ = affine_forward(features, W_proj, b_proj)
+        
+        # (1) Embedding the <START> token
+        start_word_embed, _ = word_embedding_forward(self._start, W_embed)
+        
+        hidden_curr = hidden_init
+        cell_curr = np.zeros_like(hidden_curr)
+        word_embed = start_word_embed
+        
+        for step in range(max_length):
+            # (2)
+            if self.cell_type == 'rnn':
+                hidden_curr, _ = rnn_step_forward(word_embed, hidden_curr, Wx, Wh, b)
+            else:
+                hidden_curr, cell_curr, _ = lstm_step_forward(word_embed, hidden_curr, cell_curr, Wx, Wh, b)
+
+            # (3)
+            step_scores, _ = affine_forward(hidden_curr, W_vocab, b_vocab)
+
+            # (4)
+            captions[:, step] = np.argmax(step_scores, axis=1)
+
+            # Embedding the output word for the next iteration
+            word_embed, _ = word_embedding_forward(captions[:, step], W_embed)
         ############################################################################
         #                             END OF YOUR CODE                             #
         ############################################################################
