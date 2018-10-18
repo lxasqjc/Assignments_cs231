@@ -267,7 +267,19 @@ def lstm_step_forward(x, prev_h, prev_c, Wx, Wh, b):
     # TODO: Implement the forward pass for a single timestep of an LSTM.        #
     # You may want to use the numerically stable sigmoid implementation above.  #
     #############################################################################
-    pass
+    H = prev_h.shape[1]
+    # (1) a=XtWx+H(t−1)Wh
+    a = x.dot(Wx) + prev_h.dot(Wh) + b
+    # (2) separate a into ai, af, ao, ag
+    ai, af, ao, ag = a[:, 0:H], a[:, H:2*H], a[:, 2*H:3*H], a[:,3*H:4*H]
+    # (3) apply sigmoid and tanh to gates
+    Ai, Af, Ao, Ag = sigmoid(ai), sigmoid(af), sigmoid(ao), np.tanh(ag)
+    # (4) ct=f⊙ct−1+i⊙g
+    next_c = Af * prev_c + Ai * Ag
+    # (5) ht=o⊙tanh(ct)
+    next_h = Ao * np.tanh(next_c)
+    cache = Ai, Af, Ao, Ag, next_c, x, prev_h, prev_c, Wx, Wh
+    
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
@@ -299,7 +311,26 @@ def lstm_step_backward(dnext_h, dnext_c, cache):
     # HINT: For sigmoid and tanh you can compute local derivatives in terms of  #
     # the output value from the nonlinearity.                                   #
     #############################################################################
-    pass
+    Ai, Af, Ao, Ag, next_c, x, prev_h, prev_c, Wx, Wh = cache
+    # (5)
+    dAo = dnext_h * np.tanh(next_c) # (N, H)
+    dtanhct = Ao * dnext_h # (N, H)
+    dnext_c += dtanhct * (1 - np.tanh(next_c) ** 2) # (N, H)
+    # (4)
+    dprev_c = Af * dnext_c # (N, H)
+    dAf, dAg, dAi = dnext_c * prev_c, Ai * dnext_c, dnext_c * Ag # (N, H)
+    # (3)
+    daf, dao, dai = dAf * Af * (1 - Af), dAo * Ao * (1 - Ao), dAi * Ai * (1 - Ai) # (N, H)
+    dag = dAg * (1 - Ag ** 2) # (N, H)
+    # (2)
+    da = np.concatenate((dai, daf, dao, dag), 1) # (N, 4H)
+    # (1)
+    dx = da.dot(Wx.T) # (N, D)
+    dWx = (x.T).dot(da) # (D, 4H)
+    dprev_h = da.dot(Wh.T) # (N, H)
+    dWh = (prev_h.T).dot(da) # (H, 4H)
+    db = np.sum(da, 0) # (4H,)
+    
     ##############################################################################
     #                               END OF YOUR CODE                             #
     ##############################################################################
