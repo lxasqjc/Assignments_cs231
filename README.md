@@ -14,10 +14,12 @@ Some notes for setting up google cloud environment for cs231n 2018-2019:
     ~Install NVIDIA GPU driver automatically on first startup?
     ~Enable access to JupyterLab via URL instead of SSH. (Beta)
   - Configure networking
+  - Access gcloud VM
   - gcloud setup script
   - Getting a Static IP Address to run Jupyter on local browser (important!)
   
 3) Start
+  - ssh to gcloud VM (copy and paste the gcloud command from the VM page)
   - transfer scripts (git clone)
-  - transfer dataset ()
+  - transfer dataset (cd cs231n/datasets     ./get_datasets.sh)
   - ssh into VM, cd to assignment folder, run jupyter notebook
