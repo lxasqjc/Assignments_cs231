@@ -15,7 +15,7 @@ Some notes for setting up google cloud environment for cs231n 2018-2019:
     ~Enable access to JupyterLab via URL instead of SSH. (Beta)
   - Configure networking
   - Access gcloud VM
-  - gcloud setup script
+  - gcloud setup script (setup password for jupyter notebook)
   - Getting a Static IP Address to run Jupyter on local browser (important!)
   
 3) Start
