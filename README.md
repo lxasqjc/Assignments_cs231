@@ -23,3 +23,9 @@ Some notes for setting up google cloud environment for cs231n 2018-2019:
   - transfer scripts (git clone)
   - transfer dataset (cd cs231n/datasets     ./get_datasets.sh)
   - ssh into VM, cd to assignment folder, run jupyter notebook
+
+Syllabus difference b.t. 2019 and 2018:
+  - Lecture 11	Unsupervised Learning 
+  - Lecture 12	Detection and Segmentation 
+  - Lecture 17	Human-Centered AI
+  - Invited talks
